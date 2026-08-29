@@ -3,7 +3,7 @@ const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 const esc=s=>(s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 const shortLabel=n=>String(n.label||'').split('\n')[0];
-const REGIONS=['海外','国内'];
+const REGIONS=['海外','国内','机芯'];
 
 /* ---------- field canonicalization (ported from parser) ---------- */
 const CANON={
