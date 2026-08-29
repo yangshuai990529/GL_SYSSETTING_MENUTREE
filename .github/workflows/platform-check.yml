@@ -1,0 +1,41 @@
+name: Platform checks
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build dependencies
+        run: python -m pip install --upgrade pip openpyxl
+
+      - name: Compile Python files
+        run: |
+          python -m py_compile \
+            platform/scripts/Excel解析脚本.py \
+            platform/scripts/平台构建脚本.py \
+            platform/backend/app/*.py \
+            platform/backend/app/core/*.py \
+            platform/backend/alembic/env.py \
+            platform/backend/alembic/versions/*.py
+
+      - name: Build frontend artifact
+        run: python platform/scripts/平台构建脚本.py
+
+      - name: Check generated artifact
+        run: test -s platform/frontend/dist/音画MenuTree管理平台.html
