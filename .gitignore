@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+
+# Local environment
+.env
+
+# macOS
+.DS_Store
+
+# Generated frontend artifact
+platform/frontend/dist/*
+!platform/frontend/dist/.gitkeep
+
+# Local test/runtime data
+*.log

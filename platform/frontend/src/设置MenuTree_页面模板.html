@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>设置 Menu Tree 管理平台</title>
+<style>
+:root{color-scheme:light;--bg:#f4f6f8;--panel:#fff;--line:#e2e6ec;--ink:#1a1d24;--sub:#667085;--brand:#2f5bea;--brand-soft:#eaf0ff;--warn:#b54708;--warn-soft:#fff6ed;--hide:#7a5af8;--hide-soft:#f4f0ff;--ok:#067647;--ok-soft:#e9f6ef;--chip:#eef1f5;--edit:#fff3cd;--edit-line:#e0b800;}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:-apple-system,"PingFang SC","Microsoft YaHei",Segoe UI,sans-serif;background:var(--bg);color:var(--ink);font-size:13px;display:flex;height:100vh;overflow:hidden}
+/* version sidebar */
+.vside{width:210px;flex:0 0 210px;background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column}
+.side-resizer{width:6px;flex:0 0 6px;margin-left:-3px;margin-right:-3px;cursor:col-resize;z-index:100;position:relative;background:transparent}.side-resizer:hover,.resizing-side .side-resizer{background:var(--brand)}
+.vhead{padding:14px 14px 10px;border-bottom:1px solid var(--line)}
+.vhead h1{margin:0;font-size:14px;font-weight:700}
+.vhead p{margin:2px 0 0;font-size:10px;color:var(--sub)}
+.vlisttitle{font-size:10px;color:var(--sub);padding:12px 14px 4px;text-transform:uppercase;letter-spacing:.5px;display:flex;justify-content:space-between;align-items:center}
+.addver{cursor:pointer;color:var(--brand);font-size:16px;line-height:1}
+.verlist{flex:1;overflow:auto;padding:2px 8px 20px}
+.veritem{display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:8px;cursor:pointer;margin-bottom:2px}
+.version-menu{display:none;position:fixed;z-index:700;min-width:154px;padding:5px;background:#fff;border:1px solid var(--line);border-radius:9px;box-shadow:0 10px 26px rgba(16,24,40,.18)}.version-menu.show{display:block}.version-menu button{display:block;width:100%;border:0;background:#fff;padding:7px 9px;border-radius:6px;text-align:left;font-size:12px;color:var(--ink);cursor:pointer}.version-menu button:hover{background:var(--brand-soft);color:var(--brand)}.version-menu button.danger{color:#b42318}.version-menu button.danger:hover{background:#fff1f1;color:#b42318}.version-menu .vm-sep{height:1px;background:var(--line);margin:4px 3px}
+.veritem:hover{background:var(--chip)}
+.veritem.active{background:var(--brand-soft)}
+.veritem .vname{flex:1;font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.veritem.active .vname{color:var(--brand);font-weight:600}
+.veritem .vcount{font-size:10px;color:var(--sub);background:#eef1f5;border-radius:9px;padding:0 6px;min-width:16px;text-align:center}
+.veritem .vdel,.veritem .vcopy,.veritem .vaddchild,.veritem .vrename{display:none}.vcaret{width:12px;flex:0 0 12px;font-size:9px;color:var(--sub);transition:transform .15s}.vcaret.open{transform:rotate(90deg)}.vcaret.empty{visibility:hidden}.verchildren{border-left:1px dashed var(--line);margin-left:15px}
+.vfoot{border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.vfoot .wfull{width:100%}
+.vfoot-row{display:flex;gap:6px}
+.vfoot-row .btn{flex:1}
+/* diff */
+.diff-result{flex:1;overflow:auto;margin:12px 0;border:1px solid var(--line);border-radius:10px;padding:10px}
+.diff-sum{display:flex;gap:14px;font-size:12px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.diff-sum span{font-weight:600}
+.ds-add{color:var(--ok)}.ds-del{color:#d92d20}.ds-chg{color:var(--warn)}
+.diff-item{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.diff-item.add{border-left:3px solid var(--ok)}
+.diff-item.del{border-left:3px solid #d92d20}
+.diff-item.chg{border-left:3px solid var(--warn)}
+.diff-item .fld{font-size:12px;font-weight:600}
+.diff-f{display:flex;gap:8px;font-size:12px;margin-top:4px;align-items:baseline;flex-wrap:wrap}
+.diff-fn{flex:0 0 90px;color:var(--sub);font-size:11px}
+.diff-compare-wrap{flex:1;overflow:auto;margin:12px 0;border:1px solid var(--line);border-radius:10px;background:#fff}
+.diff-compare{width:100%;min-width:980px;border-collapse:separate;border-spacing:0;font-size:12px;table-layout:fixed}
+.diff-compare th{position:sticky;top:0;z-index:2;background:#f0f3f8;border-bottom:2px solid var(--line);border-right:1px solid var(--line);padding:9px 10px;text-align:left;font-size:11px;color:#344054;white-space:nowrap}
+.diff-compare td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:9px 10px;vertical-align:top;line-height:1.55;white-space:pre-wrap;word-break:break-word}
+.diff-compare th:last-child,.diff-compare td:last-child{border-right:0}
+.diff-compare .diff-status{width:72px;text-align:center;white-space:nowrap;font-weight:700}
+.diff-compare .diff-path{width:31%;font-weight:600}
+.diff-compare .diff-field{width:130px;color:var(--sub);font-size:11px}
+.diff-compare .diff-side{width:29%;min-width:250px}
+.diff-compare tr.diff-add .diff-status{color:var(--ok);background:var(--ok-soft)}
+.diff-compare tr.diff-del .diff-status{color:#d92d20;background:#fff1f1}
+.diff-compare tr.diff-chg .diff-status{color:var(--warn);background:var(--warn-soft)}
+.diff-compare tr.diff-add td.diff-new{background:#f4fcf7}
+.diff-compare tr.diff-del td.diff-old{background:#fff8f8}
+.diff-compare tr.diff-chg td.diff-old{background:#fffaf2}
+.diff-compare tr.diff-chg td.diff-new{background:#f4f8ff}
+.diff-empty-cell{color:#98a2b3;text-align:center}
+.diff-jump{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer;white-space:pre-wrap;word-break:break-word}
+.diff-jump:hover{text-decoration:underline;text-decoration-color:var(--brand);text-underline-offset:3px}
+.diff-jump-target td{animation:diffJumpFlash 1.4s ease-out}
+@keyframes diffJumpFlash{0%{background:#fff2b8!important}100%{background:inherit}}
+.count{font-size:12px;color:var(--sub);margin-bottom:8px}
+.gs-item,.hc-item{border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-bottom:6px}
+.gs-item .m{font-size:13px;font-weight:600}
+.gs-item .p,.hc-item .p{font-size:11px;color:var(--sub)}
+.gs-item .snip{font-size:11px;color:var(--warn);margin-top:3px}
+.hc-item .d{font-size:12px;color:#b42318;margin-top:2px}
+/* main */
+.main{flex:1;display:flex;flex-direction:column;min-width:0}
+.regionbar{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px 0;display:flex;gap:4px;align-items:center}
+.rtab{padding:8px 18px;border:1px solid transparent;border-bottom:none;border-radius:9px 9px 0 0;cursor:pointer;font-size:13px;color:var(--sub);font-weight:500}
+.rtab.active{background:var(--bg);color:var(--ink);border-color:var(--line);font-weight:700}
+.curver{margin-left:auto;font-size:12px;color:var(--sub);padding-bottom:8px}
+.curver b{color:var(--brand)}
+.top{background:var(--panel);border-bottom:1px solid var(--line);padding:10px 16px}
+.toolbar{display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.spacer{flex:1}
+.btn{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;color:var(--ink);white-space:nowrap}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+.btn.primary:hover{opacity:.9;color:#fff}
+.btn.imp{background:var(--ok);color:#fff;border-color:var(--ok)}
+.btn.imp:hover{opacity:.9;color:#fff}
+.formatbar{display:flex;align-items:center;gap:5px;padding:7px 8px;margin:0 0 10px;border:1px solid var(--line);border-radius:8px;background:#fafbfc}.fmt-label{font-size:11px;color:var(--sub);margin-right:3px}.fmtbtn{width:27px;height:26px;border:1px solid var(--line);background:#fff;border-radius:5px;cursor:pointer;font-size:13px;font-weight:700}.fmtbtn:hover,.fmtbtn.active{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}.fmtbtn.italic{font-style:italic;font-family:serif}.fmtbtn.underline{text-decoration:underline}.fmtbtn.strike{text-decoration:line-through}.fmtbtn[data-align="center"]{text-align:center}.fmtbtn[data-align="right"]{text-align:right}.fmtsep{height:20px;border-left:1px solid var(--line);margin:0 3px}.fmt-color{position:relative;width:28px;height:26px;border:1px solid var(--line);border-radius:5px;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;cursor:pointer}.fmt-color.fill{color:#c68a00}.preset-label{font-size:11px;color:var(--sub);margin-left:2px}.preset-colors{display:flex;gap:3px}.preset-color{width:18px;height:18px;border:1px solid #aeb7c4;border-radius:4px;cursor:pointer;padding:0}.preset-color:hover,.preset-color.active{outline:2px solid var(--brand);outline-offset:1px}.preset-color.none{background:#fff;color:var(--sub);font-size:13px;line-height:14px}.fmt-color input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}.fmtclear{padding:5px 8px;border:1px solid var(--line);border-radius:5px;background:#fff;font-size:11px;color:var(--sub);cursor:pointer}.fmt-tip{font-size:11px;color:var(--sub);margin-left:5px}.selected-cell{outline:2px solid var(--brand)!important;outline-offset:-2px;position:relative;z-index:8}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.fitem{display:flex;flex-direction:column;gap:2px}
+.fitem label{font-size:10px;color:var(--sub);padding-left:2px}
+.filters select,.filters input{padding:5px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px;background:#fff;outline:none}
+.filters select:focus,.filters input:focus{border-color:var(--brand)}
+.search-i{position:relative}
+.search-i input{padding-left:26px;width:220px}
+.search-i svg{position:absolute;left:7px;top:7px;width:13px;height:13px;fill:var(--sub)}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chk{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:5px 9px;border:1px solid var(--line);border-radius:20px;cursor:pointer;background:#fff;user-select:none}
+.chk input{margin:0}.chk.on{border-color:var(--brand);background:var(--brand-soft);color:var(--brand)}
+.statline{font-size:11px;color:var(--sub);margin-top:8px;display:flex;gap:14px;flex-wrap:wrap}
+.statline b{color:var(--ink)}
+.exportmenu,.toolmenu{position:relative}.exportlist,.toollist{display:none;position:absolute;right:0;top:32px;z-index:60;width:230px;background:#fff;border:1px solid var(--line);border-radius:8px;box-shadow:0 8px 24px rgba(16,24,40,.14);padding:5px}.exportlist.show,.toollist.show{display:block}.exportlist button,.toollist button{display:block;width:100%;border:0;background:#fff;text-align:left;padding:7px 9px;border-radius:5px;font-size:12px;cursor:pointer}.exportlist button:hover,.toollist button:hover{background:var(--brand-soft);color:var(--brand)}.toollist .menu-sep{height:1px;background:var(--line);margin:5px 3px}.toollist button.danger{color:#b42318}.toollist button.danger:hover{background:#fff1f1;color:#b42318}.bulk-actions[hidden],.formatbar[hidden]{display:none}.bulk-actions{display:flex;align-items:center;gap:6px;padding-left:2px}.bulk-actions .selection-count{font-size:11px;color:var(--sub)}
+.colmenu{position:absolute;right:0;top:32px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.12);padding:8px;z-index:50;width:220px;max-height:360px;overflow:auto;display:none}
+.colmenu.show{display:block}
+.colmenu .ci{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:6px;font-size:12px;cursor:pointer}
+.colmenu .ci:hover{background:var(--chip)}
+.colmenu .citxt{flex:1}
+.colmenu .citxt em{color:var(--brand);font-style:normal;font-size:10px}
+.colmenu .coldel{color:var(--sub);font-size:11px;padding:0 3px;border-radius:4px}
+.colmenu .coldel:hover{color:#fff;background:#d92d20}
+.tablewrap{flex:1;overflow:auto;background:var(--panel)}
+table{border-collapse:separate;border-spacing:0;width:max-content;min-width:100%;font-size:12px}
+thead th{position:sticky;top:0;background:#f0f3f8;z-index:10;border-right:1px solid var(--line);border-bottom:2px solid var(--line);padding:8px 10px;text-align:left;font-size:11px;font-weight:600;color:#344054;white-space:nowrap;cursor:default;overflow:visible}
+.col-band{position:absolute;left:0;top:0;height:4px;width:100%;border-radius:3px 3px 0 0}.col-icon{display:inline-block;margin-right:3px;font-size:11px}.col-label{display:block;font-size:9px;line-height:1.15;color:var(--sub);font-weight:500;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.colmark-picker{display:none;position:fixed;z-index:520;width:260px;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.18);padding:11px}.colmark-picker.show{display:block}.colmark-picker label{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:8px 0;font-size:12px}.colmark-picker input:not([type=color]),.colmark-picker select{width:145px;padding:5px;border:1px solid var(--line);border-radius:5px;font-size:12px}.colmark-picker input[type=color]{width:32px;height:24px;padding:0;border:0}.col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:30}
+.col-resize:hover,.resizing-col .col-resize{background:var(--brand)}
+.resizing-col,.resizing-row{user-select:none!important;cursor:col-resize!important}
+.resizing-row{cursor:row-resize!important}thead th:hover{background:#e7edf7}
+thead th .sortarrow{color:var(--brand);font-size:9px;margin-left:3px}
+tbody td{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:6px 10px;vertical-align:top;max-width:340px;overflow:hidden;line-height:1.5}
+table.source-grid{width:max-content;min-width:max-content;table-layout:fixed}.source-grid thead{display:none}.source-grid tbody{position:relative}.source-grid tbody tr{position:relative}.source-grid tbody tr:first-child td{border-top:2px solid #a8d7b8}.source-grid tbody tr:hover td{background:#f0fbf4}.source-grid .source-cell{position:relative;box-sizing:border-box;white-space:pre-wrap;word-break:break-word;overflow-wrap:anywhere;overflow:hidden;min-width:0;max-width:none}.source-grid .source-blank{display:block;min-height:1.25em}.source-grid .source-frozen{position:sticky;z-index:7;background:#fff}.source-grid tbody tr:first-child .source-frozen{background:#bfe9d6;z-index:9}.source-grid tbody tr:hover .source-frozen{background:#f0fbf4}.source-grid .source-frozen-edge{box-shadow:3px 0 0 rgba(16,24,40,.12)}.source-col-resize{position:absolute;right:-4px;top:0;width:8px;height:100%;cursor:col-resize;z-index:25}.source-row-resize{position:absolute;left:0;bottom:-4px;width:100%;height:8px;cursor:row-resize;z-index:25}.source-col-resize:hover,.source-row-resize:hover{background:rgba(47,91,234,.45)}
+tbody tr:hover td{background:#f9fbff}
+td.wrap{white-space:pre-wrap;word-break:break-word}
+td.nowrap{white-space:nowrap}
+td.path{color:var(--sub);font-size:11px;white-space:nowrap}
+th.actcol{width:64px;min-width:64px}
+td.actcol{white-space:nowrap;text-align:center;border-right:1px solid var(--line)}
+/* frozen (sticky) left columns: action + 分类 + level columns */
+td.frz,th.frz{position:sticky;z-index:6;background:#fff}
+thead th.frz{z-index:12;background:#f0f3f8}
+thead th.selected-column{background:#dce7ff!important;box-shadow:inset 0 3px 0 var(--brand)}
+thead th.frz.levelcol{background:#eef2f9}
+td.frz{box-shadow:none}
+tr:hover td.frz{background:#f4f8ff}
+/* subtle divider after the last frozen column */
+.frz-edge{box-shadow:2px 0 0 rgba(16,24,40,.06)}
+/* level columns: menu hierarchy */
+th.levelcol{background:#eef2f9}
+td.lvcell{white-space:normal;word-break:break-word;min-width:120px;max-width:180px;font-weight:600;border-right:1px solid var(--line);background:#fcfdff}
+td.lvcell.empty-lv{background:#fafbfc;border-right:1px solid #eef1f5}
+tbody tr:hover td.lvcell{background:#f4f8ff}
+td.name{font-weight:600}
+td.edited{background:var(--edit) !important;box-shadow:inset 3px 0 0 var(--edit-line);color:#d92d20;font-weight:600}
+td.edited mark{color:#d92d20}
+td.name-edited{color:#d92d20 !important;box-shadow:inset 3px 0 0 var(--edit-line)}
+.editflag{display:inline-block;background:#d92d20;color:#fff;font-size:9px;padding:0 4px;border-radius:4px;margin-right:5px;vertical-align:middle;font-weight:700}
+.confirmbtn{display:inline-block;margin-left:6px;width:18px;height:18px;line-height:16px;text-align:center;border:1px solid #a6e0c0;border-radius:5px;color:var(--ok);font-size:12px;cursor:pointer;background:#fff;vertical-align:middle;font-weight:700}
+.confirmbtn:hover{background:var(--ok);color:#fff;border-color:var(--ok)}
+.rowbtn{border:1px solid var(--line);background:#fff;border-radius:5px;width:22px;height:22px;cursor:pointer;font-size:11px;color:var(--sub);margin:0 1px;padding:0}
+.rowbtn:hover{border-color:var(--brand);color:var(--brand)}
+.rowbtn.del:hover{border-color:#d92d20;color:#d92d20}
+tr.newrow td{background:#eefaf1}
+tr.newrow:hover td{background:#e4f6e9}
+.newtag{display:inline-block;background:var(--ok);color:#fff;font-size:9px;padding:0 4px;border-radius:4px;margin-right:5px;vertical-align:middle}
+.cellinput{width:100%;box-sizing:border-box;border:1px solid var(--brand);border-radius:6px;padding:6px;font:inherit;line-height:1.5;resize:vertical;outline:none;box-shadow:0 0 0 3px var(--brand-soft)}
+textarea.cellinput{min-height:60px;overflow:hidden}
+td.editing{max-width:520px !important;min-width:320px;background:#fff !important}
+.emptycell{color:#c5ccd6}
+.nores{padding:50px;text-align:center;color:var(--sub);line-height:1.7}
+mark{background:#fff2b8;padding:0 1px;border-radius:2px}
+.hthint{font-size:10px;color:var(--sub);font-weight:400}
+/* empty state */
+.emptyState{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;color:var(--sub);gap:14px;padding:40px;text-align:center}
+.emptyState h2{margin:0;color:var(--ink);font-size:18px}
+.emptyState p{max-width:520px;margin:0;line-height:1.8}
+.chgcount{display:inline-block;min-width:16px;padding:0 5px;border-radius:9px;background:#d92d20;color:#fff;font-size:10px;font-weight:700;text-align:center;margin-left:3px}
+.chgcount.zero{background:#cbd2e0}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1d24;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;z-index:400;pointer-events:none}
+.toast.show{opacity:1}
+.color-picker{display:none;position:fixed;z-index:500;background:#fff;border:1px solid var(--line);box-shadow:0 8px 24px rgba(16,24,40,.18);border-radius:10px;padding:10px;width:210px}
+.color-picker.show{display:block}.cp-title{font-size:12px;font-weight:600;margin-bottom:8px}.cp-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:5px}.cp-grid button{width:20px;height:20px;border:1px solid #b8c0cc;border-radius:4px;cursor:pointer}.cp-grid button.selected{outline:2px solid var(--brand);outline-offset:1px}.cp-custom{display:flex;align-items:center;justify-content:space-between;font-size:12px;margin-top:9px}.cp-custom input{width:28px;height:22px;padding:0;border:0;background:transparent}.cp-clear{width:100%;margin-top:8px;padding:5px;border:1px solid var(--line);border-radius:6px;background:#fff;font-size:11px;cursor:pointer;color:var(--sub)}
+/* drawer + dialog */
+.drawer{position:fixed;top:0;right:0;height:100vh;width:440px;max-width:92vw;background:#fff;box-shadow:-8px 0 30px rgba(16,24,40,.18);z-index:300;transform:translateX(100%);transition:transform .22s;display:flex;flex-direction:column}
+.drawer.show{transform:translateX(0)}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}
+.drawer-body{flex:1;overflow:auto;padding:12px 14px}
+.chg-sec{font-size:11px;font-weight:700;color:var(--sub);text-transform:uppercase;margin:14px 0 6px;letter-spacing:.4px}
+.chg-sec:first-child{margin-top:0}
+.chg-item{border:1px solid var(--line);border-radius:9px;padding:9px 11px;margin-bottom:8px;cursor:pointer}
+.chg-item:hover{border-color:var(--brand);background:#f9fbff}
+.chg-head{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.chg-time{font-size:11px;color:var(--sub);font-variant-numeric:tabular-nums;flex:0 0 auto}
+.chg-fld{font-size:12px;font-weight:600;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chg-caret{color:var(--sub);flex:0 0 auto;transition:transform .15s}
+.chg-item.expanded .chg-caret{transform:rotate(90deg)}
+.chg-item .chg-loc{font-size:11px;color:var(--sub);margin-bottom:3px}
+.chg-item .loc{font-size:11px;color:var(--sub);margin-bottom:3px}
+.chg-item .fld{font-size:12px;font-weight:600;margin-bottom:4px}
+.cb-conf{background:var(--ok-soft);color:var(--ok)}
+.chg-diff{font-size:12px;line-height:1.5}
+/* 2-line clamp until expanded */
+.chg-item.clamp .chg-diff,.chg-item.clamp .chg-loc{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.chg-item.clamp.expanded .chg-diff,.chg-item.clamp.expanded .chg-loc{display:block;-webkit-line-clamp:unset;overflow:visible}
+.chg-item.clamp .chg-old,.chg-item.clamp .chg-new{white-space:normal}
+.chg-old{color:var(--sub);text-decoration:line-through;white-space:pre-wrap;word-break:break-word}
+.chg-new{color:#d92d20;font-weight:600;white-space:pre-wrap;word-break:break-word}
+.chg-arrow{color:var(--sub);margin:0 3px}
+.chg-badge{display:inline-block;font-size:10px;padding:1px 6px;border-radius:5px;margin-left:5px}
+.cb-new{background:var(--ok-soft);color:var(--ok)}.cb-del{background:#fee4e2;color:#d92d20}
+.chg-empty{color:var(--sub);text-align:center;padding:40px 0}
+.dlgmask{display:none;position:fixed;inset:0;background:rgba(16,24,40,.45);z-index:200;align-items:center;justify-content:center}
+.dlg{background:#fff;border-radius:14px;padding:20px 22px;width:380px;box-shadow:0 20px 50px rgba(16,24,40,.25)}
+.dlg.raw-dialog{display:flex;flex-direction:column;width:calc(100vw - 48px);height:calc(100vh - 48px);max-width:none;max-height:none}
+.dlg h3{margin:0 0 14px;font-size:16px}
+.frow2{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.frow2 label{width:78px;flex:0 0 78px;font-size:12px;color:var(--sub)}
+.frow2 select,.frow2 input{flex:1;padding:7px 9px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none}
+.dlghint{font-size:11px;color:var(--sub);line-height:1.5;margin:6px 0 14px}
+.dlgbtns{display:flex;justify-content:flex-end;gap:8px}
+/* sync dialog */
+.sync-list{max-height:300px;overflow:auto;margin-bottom:14px}
+.sync-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin-bottom:6px;cursor:pointer;font-size:12px}
+.sync-item.na{opacity:.55;cursor:default}
+.sync-item .sync-v{font-weight:600;white-space:nowrap}
+.sync-item .sync-diff{flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sync-old{color:var(--sub);text-decoration:line-through}
+.sync-new{color:#d92d20;font-weight:600}
+.sync-miss{color:#b42318;font-style:italic}
+.sync-same{color:var(--sub)}
+/* history */
+.hist-type{font-size:10px;padding:1px 6px;border-radius:5px;font-weight:700;color:#fff;flex:0 0 auto}
+.t-edit{background:var(--edit-line)}.t-rename{background:#9333ea}.t-add{background:var(--ok)}.t-delete{background:#d92d20}.t-sync{background:var(--brand)}.t-revert{background:#0891b2}
+.hist-row{border-bottom:1px solid var(--line)}
+.hist-line{display:flex;align-items:center;gap:8px;padding:8px 4px;cursor:pointer;font-size:12px;white-space:nowrap}
+.hist-line:hover{background:#f9fbff}
+.hist-time{font-size:11px;color:var(--sub);flex:0 0 auto;font-variant-numeric:tabular-nums}
+.hist-ver{font-weight:600;flex:0 0 auto}
+.hist-menu{color:var(--ink);overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:40px}
+.hist-field{color:var(--sub);flex:0 0 auto;font-size:11px}
+.hist-caret{margin-left:auto;color:var(--sub);transition:transform .15s;flex:0 0 auto}
+.hist-row.open .hist-caret{transform:rotate(90deg)}
+.hist-detail{display:none;padding:2px 8px 12px 8px;background:#fafbfc}
+.hist-row.open .hist-detail{display:block}
+.hist-drow{display:flex;gap:10px;font-size:12px;padding:4px 0;align-items:flex-start}
+.hist-dk{flex:0 0 60px;color:var(--sub);font-size:11px}
+.hist-from{font-size:11px;color:var(--brand);background:var(--brand-soft);padding:1px 7px;border-radius:5px}
+</style>
+</head>
+<body>
+<aside class="vside">
+  <div class="vhead"><h1>设置 MenuTree</h1><p>多版本菜单规格管理</p></div>
+  <div class="vlisttitle"><span>版本</span><span class="addver" id="addVerBtn" title="新建版本">＋</span></div>
+  <div class="verlist" id="verList"></div>
+  <div class="vfoot">
+    <button class="btn wfull" id="diffBtn">🔀 跨版本对比</button>
+    <div class="vfoot-row">
+      <button class="btn" id="backupBtn" title="导出整个工程(所有版本)备份">备份</button>
+      <button class="btn" id="restoreBtn" title="从工程备份恢复或合并项目数据">恢复/合并工程备份</button>
+    </div>
+    <input type="file" id="projFile" accept=".json" style="display:none">
+  </div>
+</aside>
+<div class="side-resizer" id="sideResizer" title="拖动调整版本栏宽度"></div>
+<div class="main">
+  <div class="regionbar" id="regionTabs">
+    <div class="rtab active" data-r="海外">海外</div>
+    <div class="rtab" data-r="国内">国内</div>
+    <div class="curver" id="curVerLabel"></div>
+  </div>
+  <div class="top" id="topbar">
+    <div class="toolbar" id="toolbar">
+      <div class="bulk-actions" id="bulkActions" hidden><span class="selection-count" id="selectionCount"></span><button class="btn" id="deleteRowBtn" title="删除当前选中的行（可撤销）">删除选中行</button></div>
+      <button class="btn" id="undoBtn" title="撤销上一步 (Ctrl+Z)" disabled>↶ 撤销</button>
+      <button class="btn" id="redoBtn" title="重做下一步 (Ctrl+Y)" disabled>↷ 重做</button>
+      <div class="colcfg"><button class="btn" id="colBtn">显示列 ▾</button><div class="colmenu" id="colMenu"></div></div>
+      <button class="btn" id="changesBtn">改动明细 <span class="chgcount zero" id="chgCount">0</span></button>
+      <div class="toolmenu"><button class="btn" id="toolsMenuBtn" aria-haspopup="menu" aria-expanded="false">更多工具 ▾</button><div class="toollist" id="toolsMenu" role="menu">
+        <button data-tool="reset">重置筛选和视图</button>
+        <button data-tool="raw">原始 Excel</button>
+        <button data-tool="copy">另存为新版本</button>
+        <button data-tool="search">全局搜索</button>
+        <button data-tool="health">数据体检</button>
+        <button data-tool="sync">批量同步</button>
+        <button data-tool="history">修改记录</button>
+        <button data-tool="format">单元格格式</button>
+        <div class="menu-sep"></div>
+        <button data-tool="hide-column">隐藏选中字段列</button>
+        <div class="menu-sep"></div>
+        <button class="danger" data-tool="discard">丢弃当前版本/地区的本地改动</button>
+        <button class="danger" data-tool="purge">永久清空当前版本/地区导入内容</button>
+      </div></div>
+      <div class="spacer"></div>
+      <button class="btn imp" id="importBtn">⬆ 导入 Excel</button>
+      <button class="btn" id="addBtn">+ 新增行</button>
+      <div class="exportmenu"><button class="btn primary" id="exportMenuBtn">导出 ▾</button><div class="exportlist" id="exportList"><button data-export="xlsx">Excel（当前视图+格式）</button><button data-export="xlsx-full">Excel（完整内容·所有 Sheet）</button><button data-export="md">Markdown（当前视图）</button><button data-export="js">JavaScript 数据模块</button><button data-export="json">JSON 数据</button></div></div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls" multiple style="display:none">
+    </div>
+    <div class="formatbar" id="formatBar" hidden><span class="fmt-label">内容格式</span><button class="fmtbtn" id="fmtBold" title="加粗">B</button><button class="fmtbtn italic" id="fmtItalic" title="斜体">I</button><button class="fmtbtn underline" id="fmtUnderline" title="下划线">U</button><button class="fmtbtn strike" id="fmtStrike" title="删除线">S</button><span class="fmtsep"></span><label class="fmt-color" title="字体颜色">A<input id="fmtTextColor" type="color" value="#1A1D24"></label><span class="preset-label">背景</span><div class="preset-colors"><button class="preset-color none" data-preset-bg="" title="无颜色 / 清除背景色">∅</button><button class="preset-color" data-preset-bg="#FFF2CC" style="background:#FFF2CC" title="浅黄"></button><button class="preset-color" data-preset-bg="#FCE4D6" style="background:#FCE4D6" title="浅橙"></button><button class="preset-color" data-preset-bg="#F4CCCC" style="background:#F4CCCC" title="浅红"></button><button class="preset-color" data-preset-bg="#D9EAD3" style="background:#D9EAD3" title="浅绿"></button><button class="preset-color" data-preset-bg="#D9EAF7" style="background:#D9EAF7" title="浅蓝"></button><button class="preset-color" data-preset-bg="#D9D2E9" style="background:#D9D2E9" title="浅紫"></button><button class="preset-color" data-preset-bg="#E7E6E6" style="background:#E7E6E6" title="浅灰"></button></div><label class="fmt-color fill" title="自定义背景颜色">▣<input id="fmtBgColor" type="color" value="#FFF2CC"></label><span class="fmtsep"></span><button class="fmtbtn" data-align="left" title="左对齐">≡</button><button class="fmtbtn" data-align="center" title="居中">≡</button><button class="fmtbtn" data-align="right" title="右对齐">≡</button><button class="fmtclear" id="fmtClear" title="清除手动格式">清除格式</button><span class="fmt-tip" id="fmtTip">单击选中单元格后可设置格式</span></div>
+    <div class="filters">
+      <div class="fitem"><label>工作表</label><select id="fSheet" title="选择后按原始 Excel 单元格逐格原样镜像显示；不会按菜单树调整行列"></select></div>
+      <div class="fitem"><label>层级</label><select id="fDepth"></select></div>
+      <div class="fitem"><label>搜索</label><div class="search-i"><svg viewBox="0 0 16 16"><path d="M11.7 10.3a6 6 0 1 0-1.4 1.4l3 3 1.4-1.4-3-3zM7 11A4 4 0 1 1 7 3a4 4 0 0 1 0 8z"/></svg><input id="fSearch" placeholder="菜单名/说明/条件/配置项…"></div></div>
+    </div>
+    <div class="statline" id="statline"></div>
+  </div>
+  <div class="tablewrap" id="tableWrap"><table><thead id="thead"></thead><tbody id="tbody"></tbody></table></div>
+  <div class="emptyState" id="emptyState"><h2 id="emptyTitle">还没有任何版本</h2><p id="emptyHint">点击左侧版本区的 ＋ 新建一个版本,然后导入 Excel。</p></div>
+</div>
+<div id="versionMenu" class="version-menu"><button data-vm="child">＋ 新增小版本</button><button data-vm="rename">✎ 修改版本名称</button><button data-vm="copy">⧉ 复制为新版本</button><div class="vm-sep"></div><button class="danger" data-vm="delete">✕ 删除此版本</button></div>
+<div id="colMarkPicker" class="colmark-picker"><div class="cp-title">列标记（不影响单元格内容）</div><label>文字标签<input id="cmLabel" placeholder="如：未使用 / 待确认"></label><label>状态图标<select id="cmIcon"><option value="●">● 圆点</option><option value="⚑">⚑ 旗帜</option><option value="!">! 感叹号</option><option value="✓">✓ 勾选</option><option value="★">★ 星标</option><option value="">无图标</option></select></label><label>表头色带<input id="cmColor" type="color" value="#FFF2CC"></label><div class="dlgbtns"><button class="btn" id="cmClear">清除</button><button class="btn primary" id="cmSave">保存标记</button></div></div>
+<div id="colorPicker" class="color-picker"><div class="cp-title">单元格标记颜色</div><div class="cp-grid"><button data-color="#FFF2CC" style="background:#FFF2CC"></button><button data-color="#FCE4D6" style="background:#FCE4D6"></button><button data-color="#F4CCCC" style="background:#F4CCCC"></button><button data-color="#D9EAD3" style="background:#D9EAD3"></button><button data-color="#D9EAF7" style="background:#D9EAF7"></button><button data-color="#D9D2E9" style="background:#D9D2E9"></button><button data-color="#EAD1DC" style="background:#EAD1DC"></button><button data-color="#D0E0E3" style="background:#D0E0E3"></button></div><label class="cp-custom">自定义 <input id="customColor" type="color"></label><button class="cp-clear" id="clearColor">清除颜色</button></div>
+<div class="toast" id="toast"></div>
+<div class="drawer" id="chgDrawer"><div class="drawer-head"><b>改动明细</b><button class="btn" id="chgClose">关闭</button></div><div class="drawer-body" id="chgBody"></div></div>
+<div class="drawer" id="histDrawer"><div class="drawer-head"><b>修改记录</b><div style="display:flex;gap:8px;align-items:center"><select id="histVerFilter" style="padding:4px 8px;border:1px solid var(--line);border-radius:7px;font-size:12px"></select><button class="btn" id="histExport">导出</button><button class="btn" id="histClose">关闭</button></div></div><div class="drawer-body" id="histBody"></div></div>
+<div class="dlgmask" id="rawDlg"><div class="dlg raw-dialog"><h3>原始 Excel 完整预览</h3><p class="dlghint">此处按原始工作表范围完整显示，包含空白行、空白列和公式文本；只读，不会修改源文件。</p><select id="rawSel" style="padding:7px;margin-bottom:8px"></select><div id="rawView" class="diff-result"></div><div class="dlgbtns"><button class="btn" id="rawDownload">下载原始 Excel（100% 原文件）</button><button class="btn" id="rawClose">关闭</button></div></div></div>
+<div class="dlgmask" id="gsDlg"><div class="dlg" style="width:600px;max-height:82vh;display:flex;flex-direction:column"><h3>全局搜索(所有版本)</h3>
+  <div class="frow2"><input id="gsInput" placeholder="菜单名 / 配置项 / feature flag / 条件…" style="flex:1"><button class="btn primary" id="gsRun">搜索</button></div>
+  <div id="gsResult" class="diff-result"></div>
+  <div class="dlgbtns"><button class="btn" id="gsClose">关闭</button></div>
+</div></div>
+<div class="dlgmask" id="hcDlg"><div class="dlg" style="width:600px;max-height:82vh;display:flex;flex-direction:column"><h3>数据体检 · <span style="font-size:12px;color:var(--sub)" id="hcVer"></span></h3>
+  <div id="hcResult" class="diff-result"></div>
+  <div class="dlgbtns"><button class="btn" id="hcClose">关闭</button></div>
+</div></div>
+<div class="dlgmask" id="bsDlg"><div class="dlg" style="width:440px"><h3>批量同步整个分类</h3>
+  <div class="frow2"><label>分类</label><select id="bsCat"></select></div>
+  <p class="dlghint">把当前版本此分类下所有菜单项的字段,按<b>完整路径</b>匹配同步到选中的版本(同区域)。已相同或未匹配的项跳过。</p>
+  <div id="bsVers" class="sync-list"></div>
+  <div class="dlgbtns"><button class="btn" id="bsCancel">取消</button><button class="btn primary" id="bsRun">开始批量同步</button></div>
+</div></div>
+<div class="dlgmask" id="diffDlg"><div class="dlg" style="width:min(1180px,92vw);max-height:88vh;display:flex;flex-direction:column"><h3>跨版本对比</h3>
+  <div class="frow2" style="gap:8px;flex-wrap:wrap">
+    <select id="diffA" style="flex:1"></select><span style="color:var(--sub)">对比</span><select id="diffB" style="flex:1"></select>
+    <select id="diffRegion" style="flex:0 0 90px"></select>
+    <button class="btn primary" id="diffRun">开始对比</button>
+  </div>
+  <div id="diffResult" class="diff-result"></div>
+  <div class="dlgbtns"><button class="btn" id="diffClose">关闭</button></div>
+</div></div>
+<div class="dlgmask" id="syncDlg"><div class="dlg" style="width:440px"><h3>同步到其他版本</h3>
+  <p class="dlghint">你刚修改了 <b id="syncField"></b>。<br>勾选要同步到的版本(同为「当前区域」),按<b>小标题 → 二级菜单 → 三级菜单 → 四级菜单</b>匹配同一项。已是相同值或未找到相同层级项的版本不可选。</p>
+  <div id="syncList" class="sync-list"></div>
+  <div class="dlgbtns"><button class="btn" id="syncCancel">不同步</button><button class="btn primary" id="syncOk">确定同步</button></div>
+</div></div>
+<div class="dlgmask" id="addDlg"><div class="dlg"><h3>新增菜单项</h3>
+  <div class="frow2"><label>分类</label><select id="adCat"></select></div>
+  <div class="frow2"><label>父级菜单</label><select id="adParent"></select></div>
+  <div class="frow2"><label>菜单名称</label><input id="adName" placeholder="如：亮度、色温…"></div>
+  <p class="dlghint">新增后出现在当前版本+区域的表格中(标「新」),字段可双击补充。自动保存在本地。</p>
+  <div class="dlgbtns"><button class="btn" id="adCancel">取消</button><button class="btn primary" id="adOk">确定新增</button></div>
+</div></div>
+<div class="dlgmask" id="deleteVersionDlg"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="deleteVersionTitle"><h3 id="deleteVersionTitle">删除版本</h3>
+  <p class="dlghint" id="deleteVersionSummary"></p>
+  <div id="deleteVersionChildren" class="sync-list"></div>
+  <p class="dlghint" id="deleteVersionHint"></p>
+  <div class="dlgbtns"><button class="btn" id="deleteVersionCancel">取消</button><button class="btn primary" id="deleteVersionPromote">删除此版本并保留子版本</button><button class="btn" id="deleteVersionBranch" style="color:#b42318;border-color:#fecdca">删除整个分支</button></div>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const SEED_V6 = __SEED__;
+__SCRIPT__
+</script>
+</body>
+</html>

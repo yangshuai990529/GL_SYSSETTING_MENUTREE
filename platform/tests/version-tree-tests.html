@@ -1,0 +1,21 @@
+<!doctype html><meta charset="utf-8"><title>MenuTree version-tree tests</title><script src="音画MenuTree管理平台.html"></script><script>
+(async()=>{
+  await new Promise(r=>setTimeout(r,120));
+  const t=window.__t, assert=(condition,message)=>{if(!condition)throw new Error(message);};
+  const ds=()=>({trees:[],rawSheets:[],originalFiles:[],sheetEdits:{},sheetLayout:{},sourceClears:{},edits:{},added:[],deleted:{},ts:{},confirmed:{},customCols:[],hiddenColumns:[],layout:{colWidths:{},rowHeights:{}},cellColors:{},cellFormats:{},columnMarks:{},ui:{}});
+  const store={versions:[{id:'a',name:'A'},{id:'b',name:'B',parent:'A'},{id:'c',name:'C',parent:'B'},{id:'x',name:'X'}],data:{'A::海外':ds(),'A::国内':ds(),'B::海外':ds(),'B::国内':ds(),'C::海外':ds(),'C::国内':ds(),'X::海外':ds(),'X::国内':ds()},history:[]};
+  t.STORE=store; t.openDeleteVersionDialog('A'); t.commitVersionDelete('promote');
+  assert(t.STORE.versions.some(v=>v.name==='B'&&v.parent==null),'promoted child B must be a root');
+  assert(t.STORE.versions.some(v=>v.name==='C'&&v.parent==='B'),'grandchild C must stay below B');
+  assert(!t.STORE.versions.some(v=>v.name==='A'),'deleted parent A must be removed');
+  assert(!t.STORE.data['A::海外']&&!t.STORE.data['A::国内'],'parent datasets must be removed');
+  assert(t.STORE.data['B::海外']&&t.STORE.data['C::国内'],'retained descendants must keep data');
+  t.openDeleteVersionDialog('B'); t.commitVersionDelete('branch');
+  assert(!t.STORE.versions.some(v=>v.name==='B'||v.name==='C'),'branch delete must remove descendants');
+  assert(!t.STORE.data['B::海外']&&!t.STORE.data['C::国内'],'branch delete must remove all descendant datasets');
+  t.STORE={versions:[{id:'legacy',name:'Legacy',parent:'Missing'}],data:{},history:[]};
+  assert(t.repairVersionTree().length===1,'legacy orphan must be repaired');
+  assert(t.STORE.versions[0].parent==null,'legacy orphan must become root');
+  document.body.innerHTML='<pre>PASS: version-tree deletion safety</pre>';
+})().catch(error=>{console.error(error);document.body.innerHTML='<pre>FAIL: '+error.message+'</pre>';});
+</script>
